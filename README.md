@@ -26,7 +26,7 @@
 
 | # | Lab | Type | Difficulty | Focus | Status |
 |:-:|-----|------|:----------:|-------|:------:|
-| 01 | **[Unbaked](./unbaked/)** | Active Directory | Medium-Hard | Kerberoasting · AS-REP · GPP · DCSync · Delegation | Playable |
+| 01 | **[Unbaked](https://github.com/Aditya-k-Jangid/Labs_To_3xploit/tree/main/Unbacked)** | Active Directory | Medium-Hard | Kerberoasting · AS-REP · GPP · DCSync · Delegation | Playable |
 
 > More rows get added here as new labs drop.
 
@@ -72,7 +72,7 @@ Path 5 │ Constrained Delegation Exploitation
 | 10 | Domain compromise | 100 |
 | | **Total** | **1000** |
 
-Full write-up: [`unbaked/README.md`](./unbaked/README.md)
+Full write-up: [`unbaked/README.md`](https://github.com/Aditya-k-Jangid/Labs_To_3xploit/tree/main/Unbacked/README.md)
 
 ---
 
