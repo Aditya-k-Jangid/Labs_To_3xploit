@@ -2,23 +2,23 @@
 .SYNOPSIS
     One-click lab setup for the Active Directory ESC1 attack chain.
 .DESCRIPTION
-    This script configures a domain with:
+    Configures a domain with:
       - Users (John Willium, Orange, Mango, Dragon)
       - SMB share with hidden SQLite database
       - Anonymous / null session access
       - GenericWrite ACLs (John -> Orange, John -> Mango)
       - AD Recycle Bin
       - Vulnerable AD CS certificate template (ESC1)
-      - Flags on the desktops of Orange and Administrator
+      - Flags on Orange's and Administrator's desktops
 .NOTES
     Run as Domain Administrator on a Domain Controller with AD CS installed.
-    Set $GitHubRawBase to the base URL of your GitHub repository (without trailing slash).
+    Adjust $GitHubRawBase if your repository structure changes.
 #>
 
 [CmdletBinding()]
 param(
-    # !! EDIT THIS to point to your GitHub repository's raw content base URL !!
-    [string]$GitHubRawBase = "https://raw.githubusercontent.com/Aditya-k-Jangid/Labs_To_3xploit/refs/heads/main/Control/LabSetup.ps1"
+    # Base raw URL to the Control folder (no trailing slash)
+    [string]$GitHubRawBase = "https://raw.githubusercontent.com/Aditya-k-Jangid/Labs_To_3xploit/refs/heads/main/Control"
 )
 
 $ErrorActionPreference = "Stop"
@@ -29,15 +29,12 @@ $InformationPreference = "Continue"
 # =============================================
 Write-Information "=== Checking environment ==="
 
-# Must run as admin
 if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
     throw "This script must be run as Administrator."
 }
 
-# Load ActiveDirectory module
 Import-Module ActiveDirectory -ErrorAction Stop
 
-# Discover domain information
 try {
     $domain = Get-ADDomain
     $domainDNS = $domain.DNSRoot
@@ -46,7 +43,7 @@ try {
     $dcFQDN = $dc.HostName
     $configNC = (Get-ADRootDSE).configurationNamingContext
     $domainSID = $domain.DomainSID
-    $adminSID = "$domainSID-500"   # Built-in Administrator
+    $adminSID = "$domainSID-500"
 } catch {
     throw "Failed to query domain information. Are you on a domain controller? $_"
 }
@@ -60,10 +57,9 @@ Write-Information "Configuration NC: $configNC"
 # =============================================
 Write-Information "=== Creating users ==="
 
-# Secure password strings
-$johnPW = ConvertTo-SecureString "John2134!" -AsPlainText -Force
+$johnPW   = ConvertTo-SecureString "John2134!" -AsPlainText -Force
 $orangePW = ConvertTo-SecureString "secret2!" -AsPlainText -Force
-$mangoPW = ConvertTo-SecureString "Uncracable@312" -AsPlainText -Force
+$mangoPW  = ConvertTo-SecureString "Uncracable@312" -AsPlainText -Force
 $dragonPW = ConvertTo-SecureString "hell%1U^&#%" -AsPlainText -Force
 
 $users = @(
@@ -88,7 +84,6 @@ foreach ($u in $users) {
     }
 }
 
-# Group memberships
 Add-ADGroupMember -Identity "Remote Management Users" -Members "Orange" -ErrorAction SilentlyContinue
 Add-ADGroupMember -Identity "Administrators" -Members "Dragon" -ErrorAction SilentlyContinue
 Add-ADGroupMember -Identity "Remote Management Users" -Members "Dragon" -ErrorAction SilentlyContinue
@@ -102,35 +97,52 @@ $sharePath = "C:\LabShare"
 $shareName = "Del_me"
 $sqliteFile = "Info.sqlite3"
 $sqliteDestination = Join-Path $sharePath $sqliteFile
-mkdir $sharePath/$shareName
-# Create folder and download SQLite file
+
+# Clean up leftovers from any previous run
+if (Test-Path (Join-Path $sharePath $shareName)) {
+    Remove-Item -Path (Join-Path $sharePath $shareName) -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Information "Cleaned up old Del_me subdirectory."
+}
+
+# Ensure target folder exists and has clean ACLs
 if (-not (Test-Path $sharePath)) {
     New-Item -ItemType Directory -Path $sharePath -Force | Out-Null
+} else {
+    icacls $sharePath /reset /T /Q 2>$null
+    Write-Information "Reset permissions on $sharePath."
 }
-$sqliteUrl = "$GitHubRawBase/../Assets/$sqliteFile"
-Invoke-WebRequest -Uri $sqliteUrl -OutFile $sqliteDestination
+
+# Remove existing database file (even if hidden/read-only)
+if (Test-Path $sqliteDestination) {
+    attrib -h -r -s $sqliteDestination 2>$null
+    Remove-Item -Path $sqliteDestination -Force -ErrorAction Stop
+    Write-Information "Removed existing $sqliteFile."
+}
+
+# Download the database from GitHub
+$sqliteUrl = "$GitHubRawBase/Assets/$sqliteFile"
+Invoke-WebRequest -Uri $sqliteUrl -OutFile $sqliteDestination -ErrorAction Stop
 Write-Information "Downloaded $sqliteFile to $sqliteDestination"
 
-# Hide the SQLite file
+# Hide the file
 attrib +h $sqliteDestination
 
-# Create the share (remove first if it exists)
-net share $shareName /delete 2>$null
-net share $shareName=$sharePath /grant:"Everyone,FULL" /remark:"Lab share"
+# Remove old share silently, then create new one
+if (Get-SmbShare -Name $shareName -ErrorAction SilentlyContinue) {
+    Remove-SmbShare -Name $shareName -Force -ErrorAction SilentlyContinue
+}
+New-SmbShare -Name $shareName -Path $sharePath -FullAccess Everyone -Description "Lab share" -ErrorAction Stop
 Write-Information "Share '$shareName' created on $sharePath"
 
 # =============================================
-# 3. Anonymous / null session access
+# 3. Anonymous / null session access (using reg add – robust)
 # =============================================
 Write-Information "=== Enabling anonymous access ==="
 net user guest /active:yes
 
-$regPath1 = "HKLM\SYSTEM\CurrentControlSet\Control\Lsa"
-$regPath2 = "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters"
-
-Set-ItemProperty -Path $regPath1 -Name "RestrictAnonymous" -Value 0 -Type DWord -Force
-Set-ItemProperty -Path $regPath1 -Name "EveryoneIncludesAnonymous" -Value 1 -Type DWord -Force
-Set-ItemProperty -Path $regPath2 -Name "NullSessionShares" -Value $shareName -Type MultiString -Force
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v RestrictAnonymous /t REG_DWORD /d 0 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v EveryoneIncludesAnonymous /t REG_DWORD /d 1 /f
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" /v NullSessionShares /t REG_MULTI_SZ /d $shareName /f
 
 Restart-Service LanmanServer -Force
 Write-Information "Anonymous access configured. LanmanServer restarted."
@@ -177,105 +189,85 @@ Write-Information "=== Writing flags ==="
 $userFlag = 'Flag{9f5b2c7e4a13d8f6e0b4c8a2d1f7e6b0}'
 $rootFlag = 'Flag{e3d1a7f0b9c6d5e4a3b2c1d0e9f8a7b6}'
 
-$orangeDesktop = [System.Environment]::GetFolderPath('Desktop')
-$adminDesktop = "C:\Users\Administrator\Desktop"
+$orangeDesktop = "C:\Users\Orange\Desktop"
+$adminDesktop  = "C:\Users\Administrator\Desktop"
 
-# Orange's desktop
 if (-not (Test-Path $orangeDesktop)) { New-Item -ItemType Directory -Path $orangeDesktop -Force | Out-Null }
 Set-Content -Path (Join-Path $orangeDesktop "user.txt") -Value $userFlag -Force
 
-# Administrator's desktop
 if (-not (Test-Path $adminDesktop)) { New-Item -ItemType Directory -Path $adminDesktop -Force | Out-Null }
 Set-Content -Path (Join-Path $adminDesktop "root.txt") -Value $rootFlag -Force
 
-Write-Information "Flags written to Orange's and Administrator's desktops."
+Write-Information "Flags written."
 
 # =============================================
 # 7. ESC1 vulnerable certificate template
 # =============================================
 Write-Information "=== Configuring AD CS ESC1 ==="
 
-# Check if AD CS is installed
 $ca = Get-ChildItem -Path "HKLM:\SYSTEM\CurrentControlSet\Services\CertSvc\Configuration" -ErrorAction SilentlyContinue
 if (-not $ca) {
     Write-Warning "AD CS does not appear to be installed. Skipping certificate template setup."
-    return
+} else {
+    $caName = $ca.PSChildName
+    Write-Information "Found CA: $caName"
+
+    $templateName = "ESC1Test"
+    $templateDN = "CN=$templateName,CN=Certificate Templates,CN=Public Key Services,CN=Services,$configNC"
+    $userTemplateDN = "CN=User,CN=Certificate Templates,CN=Public Key Services,CN=Services,$configNC"
+
+    if (Get-ADObject -Filter "distinguishedName -eq '$templateDN'" -ErrorAction SilentlyContinue) {
+        Write-Warning "ESC1Test template already exists. Removing and recreating..."
+        Remove-ADObject -Identity $templateDN -Recursive -Confirm:$false
+    }
+
+    $userTemplate = Get-ADObject -Identity $userTemplateDN -Properties *
+    $newTemplate = $userTemplate | Select-Object *
+    $newTemplate.DistinguishedName = $templateDN
+    $newTemplate.Name = $templateName
+    $newTemplate.DisplayName = $templateName
+
+    $newTemplate.'msPKI-Certificate-Name-Flag' = 1
+    $newTemplate.'msPKI-Enrollment-Flag' = 0
+    $newTemplate.'msPKI-Certificate-Application-Policy' = @("1.3.6.1.5.5.7.3.2")
+
+    $attrList = @('distinguishedName','objectGUID','objectSid','cn','whenCreated','whenChanged','uSNCreated','uSNChanged','dSCorePropagationData')
+    foreach ($attr in $attrList) {
+        $newTemplate.PSBase.Properties.Remove($attr)
+    }
+
+    $newTemplate | New-ADObject -Type "pKICertificateTemplate" -Path "CN=Certificate Templates,CN=Public Key Services,CN=Services,$configNC"
+    Write-Information "ESC1Test template created."
+
+    $templateACL = Get-Acl "AD:\$templateDN"
+    $orangeSID = (Get-ADUser Orange).SID
+    $identity = New-Object System.Security.Principal.SecurityIdentifier($orangeSID)
+    $enrollGuid = New-Object Guid "0e10c968-78fb-11d2-90d4-00c04f79dc55"
+    $ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule(
+        $identity,
+        [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight,
+        [System.Security.AccessControl.AccessControlType]::Allow,
+        $enrollGuid
+    )
+    $templateACL.AddAccessRule($ace)
+    Set-Acl -Path "AD:\$templateDN" -AclObject $templateACL
+    Write-Information "Orange granted Enroll permission on ESC1Test."
+
+    certutil -SetCAtemplates +$templateName
+    Write-Information "Template published to CA."
+
+    Write-Information "Configuring DC Kerberos Authentication certificate..."
+    certutil -SetCAtemplates +KerberosAuthentication
+    certutil -pulse
+    gpupdate /force | Out-Null
+    Start-Sleep -Seconds 5
+
+    certreq -enroll -machine -q KerberosAuthentication
+    Write-Information "DC enrollment requested."
+
+    Restart-Service kdc
+    Write-Information "KDC service restarted."
 }
-
-$caName = $ca.PSChildName
-Write-Information "Found CA: $caName"
-
-# Template details
-$templateName = "ESC1Test"
-$templateDN = "CN=$templateName,CN=Certificate Templates,CN=Public Key Services,CN=Services,$configNC"
-$userTemplateDN = "CN=User,CN=Certificate Templates,CN=Public Key Services,CN=Services,$configNC"
-
-# Remove existing template if present
-if (Get-ADObject -Filter "distinguishedName -eq '$templateDN'" -ErrorAction SilentlyContinue) {
-    Write-Warning "ESC1Test template already exists. Removing and recreating..."
-    Remove-ADObject -Identity $templateDN -Recursive -Confirm:$false
-}
-
-# Duplicate the User template
-$userTemplate = Get-ADObject -Identity $userTemplateDN -Properties *
-$newTemplate = $userTemplate | Select-Object *
-$newTemplate.DistinguishedName = $templateDN
-$newTemplate.Name = $templateName
-$newTemplate.DisplayName = $templateName
-
-# Flags
-$newTemplate.'msPKI-Certificate-Name-Flag' = 1         # CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT
-$newTemplate.'msPKI-Enrollment-Flag' = 0                # No CA approval required
-$newTemplate.'msPKI-Certificate-Application-Policy' = @("1.3.6.1.5.5.7.3.2")   # Client Authentication
-
-# Remove attributes that cannot be directly copied
-$newTemplate.PSBase.Properties.Remove('distinguishedName')
-$newTemplate.PSBase.Properties.Remove('objectGUID')
-$newTemplate.PSBase.Properties.Remove('objectSid')
-$newTemplate.PSBase.Properties.Remove('cn')
-$newTemplate.PSBase.Properties.Remove('whenCreated')
-$newTemplate.PSBase.Properties.Remove('whenChanged')
-$newTemplate.PSBase.Properties.Remove('uSNCreated')
-$newTemplate.PSBase.Properties.Remove('uSNChanged')
-$newTemplate.PSBase.Properties.Remove('dSCorePropagationData')
-
-# Create the template object
-$newTemplate | New-ADObject -Type "pKICertificateTemplate" -Path "CN=Certificate Templates,CN=Public Key Services,CN=Services,$configNC"
-Write-Information "ESC1Test template created."
-
-# Grant Orange enrollment rights
-$templateACL = Get-Acl "AD:\$templateDN"
-$orangeSID = (Get-ADUser Orange).SID
-$identity = New-Object System.Security.Principal.SecurityIdentifier($orangeSID)
-$enrollGuid = New-Object Guid "0e10c968-78fb-11d2-90d4-00c04f79dc55"
-$ace = New-Object System.DirectoryServices.ActiveDirectoryAccessRule(
-    $identity,
-    [System.DirectoryServices.ActiveDirectoryRights]::ExtendedRight,
-    [System.Security.AccessControl.AccessControlType]::Allow,
-    $enrollGuid
-)
-$templateACL.AddAccessRule($ace)
-Set-Acl -Path "AD:\$templateDN" -AclObject $templateACL
-Write-Information "Orange granted Enroll permission on ESC1Test."
-
-# Publish template to CA
-certutil -SetCAtemplates +$templateName
-Write-Information "Template published to CA."
-
-# Ensure the Kerberos Authentication template is available and the DC enrolls
-Write-Information "Configuring DC Kerberos Authentication certificate..."
-certutil -SetCAtemplates +KerberosAuthentication
-certutil -pulse
-gpupdate /force | Out-Null
-Start-Sleep -Seconds 5
-
-# Enroll the DC machine (this may already be done, but we force it)
-certreq -enroll -machine -q KerberosAuthentication
-Write-Information "DC enrollment requested."
-
-# Restart KDC
-Restart-Service kdc
-Write-Information "KDC service restarted."
 
 # =============================================
 # 8. Summary
@@ -283,14 +275,14 @@ Write-Information "KDC service restarted."
 Write-Information "========================================="
 Write-Information "Lab setup complete!"
 Write-Information ""
-Write-Information "User flag location: C:\Users\Orange\Desktop\user.txt"
-Write-Information "Root flag location: C:\Users\Administrator\Desktop\root.txt"
-Write-Information "SMB share: \\$dcFQDN\$shareName (hidden DB: $sqliteFile)"
+Write-Information "User flag : $userFlag"
+Write-Information "Root flag : $rootFlag"
+Write-Information "SMB share : \\$dcFQDN\$shareName (hidden DB: $sqliteFile)"
 Write-Information ""
-Write-Information "Attack path summary:"
+Write-Information "Attack path:"
 Write-Information "  1. Enumerate SMB anonymously -> find & download Info.sqlite3"
 Write-Information "  2. Crack John Willium's password (hint inside DB)"
-Write-Information "  3. Use John's GenericWrite over Orange to take control (e.g., targeted Kerberoast / shadow creds)"
-Write-Information "  4. As Orange, request an ESC1 cert for Administrator with -sid"
-Write-Information "  5. Authenticate with the cert -> DA"
+Write-Information "  3. Use John's GenericWrite over Orange to take control"
+Write-Information "  4. As Orange, request ESC1 cert for Administrator with -sid"
+Write-Information "  5. Authenticate with the cert -> Domain Admin"
 Write-Information "========================================="
