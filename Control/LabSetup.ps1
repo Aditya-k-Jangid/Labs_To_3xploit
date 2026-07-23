@@ -132,7 +132,7 @@ if (Get-SmbShare -Name $shareName -ErrorAction SilentlyContinue) {
     Remove-SmbShare -Name $shareName -Force -ErrorAction SilentlyContinue
 }
 New-SmbShare -Name $shareName -Path $sharePath -FullAccess Everyone -Description "Lab share" -ErrorAction Stop
-Write-Information "Share '$shareName' created on $sharePath"
+Write-Information "Share '$shareName' created"
 
 # =============================================
 # 3. Anonymous / null session access (using reg add – robust)
@@ -275,14 +275,9 @@ if (-not $ca) {
 Write-Information "========================================="
 Write-Information "Lab setup complete!"
 Write-Information ""
-Write-Information "User flag : $userFlag"
-Write-Information "Root flag : $rootFlag"
-Write-Information "SMB share : \\$dcFQDN\$shareName (hidden DB: $sqliteFile)"
+Write-Information "User flag : In Place"
+Write-Information "Root flag : In Place"
+Write-Information "SMB share : All set"
 Write-Information ""
-Write-Information "Attack path:"
-Write-Information "  1. Enumerate SMB anonymously -> find & download Info.sqlite3"
-Write-Information "  2. Crack John Willium's password (hint inside DB)"
-Write-Information "  3. Use John's GenericWrite over Orange to take control"
-Write-Information "  4. As Orange, request ESC1 cert for Administrator with -sid"
-Write-Information "  5. Authenticate with the cert -> Domain Admin"
+Write-Information "Now access the Guide.html from a browser"
 Write-Information "========================================="
