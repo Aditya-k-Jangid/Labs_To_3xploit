@@ -18,7 +18,7 @@
 [CmdletBinding()]
 param(
     # !! EDIT THIS to point to your GitHub repository's raw content base URL !!
-    [string]$GitHubRawBase = "https://raw.githubusercontent.com/YourUsername/YourRepo/main"
+    [string]$GitHubRawBase = "https://raw.githubusercontent.com/Aditya-k-Jangid/Labs_To_3xploit/refs/heads/main/Control/LabSetup.ps1"
 )
 
 $ErrorActionPreference = "Stop"
@@ -100,7 +100,7 @@ Write-Information "Group memberships set."
 Write-Information "=== Setting up SMB share ==="
 $sharePath = "C:\LabShare"
 $shareName = "Del_me"
-$sqliteFile = "Info.sqlite3"
+$sqliteFile = "Assects/Info.sqlite3"
 $sqliteDestination = Join-Path $sharePath $sqliteFile
 
 # Create folder and download SQLite file
