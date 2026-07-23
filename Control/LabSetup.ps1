@@ -100,14 +100,14 @@ Write-Information "Group memberships set."
 Write-Information "=== Setting up SMB share ==="
 $sharePath = "C:\LabShare"
 $shareName = "Del_me"
-$sqliteFile = "Assets/Info.sqlite3"
+$sqliteFile = "Info.sqlite3"
 $sqliteDestination = Join-Path $sharePath $sqliteFile
-
+mkdir $sharePath/$shareName
 # Create folder and download SQLite file
 if (-not (Test-Path $sharePath)) {
     New-Item -ItemType Directory -Path $sharePath -Force | Out-Null
 }
-$sqliteUrl = "$GitHubRawBase/../$sqliteFile"
+$sqliteUrl = "$GitHubRawBase/../Assets/$sqliteFile"
 Invoke-WebRequest -Uri $sqliteUrl -OutFile $sqliteDestination
 Write-Information "Downloaded $sqliteFile to $sqliteDestination"
 
