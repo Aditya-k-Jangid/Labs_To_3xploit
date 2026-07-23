@@ -95,7 +95,7 @@ if (Test-Path $sqliteFile) {
     try {
         $item = Get-Item $sqliteFile -Force -ErrorAction Stop
         if ($item.Attributes -band [System.IO.FileAttributes]::Hidden) {
-            Pass; Write-Host "File '$sqliteFile' exists and is hidden"
+            Pass; Write-Host "SMB ALL SET"
         }
         else {
             Pass; Write-Host "File '$sqliteFile' exists but NOT hidden"
