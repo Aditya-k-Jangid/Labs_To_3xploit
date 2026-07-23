@@ -107,7 +107,7 @@ $sqliteDestination = Join-Path $sharePath $sqliteFile
 if (-not (Test-Path $sharePath)) {
     New-Item -ItemType Directory -Path $sharePath -Force | Out-Null
 }
-$sqliteUrl = "$GitHubRawBase/$sqliteFile"
+$sqliteUrl = "$GitHubRawBase/../$sqliteFile"
 Invoke-WebRequest -Uri $sqliteUrl -OutFile $sqliteDestination
 Write-Information "Downloaded $sqliteFile to $sqliteDestination"
 
