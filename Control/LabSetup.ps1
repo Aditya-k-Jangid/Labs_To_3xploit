@@ -100,7 +100,7 @@ Write-Information "Group memberships set."
 Write-Information "=== Setting up SMB share ==="
 $sharePath = "C:\LabShare"
 $shareName = "Del_me"
-$sqliteFile = "Assects/Info.sqlite3"
+$sqliteFile = "Assets/Info.sqlite3"
 $sqliteDestination = Join-Path $sharePath $sqliteFile
 
 # Create folder and download SQLite file
