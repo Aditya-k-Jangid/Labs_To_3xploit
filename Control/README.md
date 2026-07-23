@@ -10,8 +10,6 @@
               created by Sawsage
 ```
 
-<p align="center"><i>anonymous SMB -&gt; cracked creds -&gt; ACL abuse -&gt; AD CS ESC1 -&gt; Domain Admin</i></p>
-
 ---
 
 ### [!] READ THIS FIRST
