@@ -11,10 +11,9 @@
 ```
 
 ### A collection of self-built vulnerable environments for offensive security practice
-
 *Active Directory · Web · Misc — built to break, made to learn*
 
-![Labs](https://img.shields.io/badge/labs-1-blueviolet?style=for-the-badge)
+![Labs](https://img.shields.io/badge/labs-2-blueviolet?style=for-the-badge)
 ![Focus](https://img.shields.io/badge/focus-AD%20%7C%20Web%20%7C%20Pentest-red?style=for-the-badge)
 ![Status](https://img.shields.io/badge/status-active-brightgreen?style=for-the-badge)
 
@@ -27,6 +26,7 @@
 | # | Lab | Type | Difficulty | Focus | Status |
 |:-:|-----|------|:----------:|-------|:------:|
 | 01 | **[Unbaked](https://github.com/Aditya-k-Jangid/Labs_To_3xploit/tree/main/Unbacked)** | Active Directory | Medium-Hard | Kerberoasting · AS-REP · GPP · DCSync · Delegation | Playable |
+| 02 | **[Control](https://github.com/Aditya-k-Jangid/Labs_To_3xploit/tree/main/Control)** | Active Directory | Hard | Anonymous SMB · Credential Cracking · ACL Abuse · AD CS ESC1 · Domain Admin | Playable |
 
 > More rows get added here as new labs drop.
 
@@ -58,21 +58,33 @@ Path 4 │ DCSync Rights Abuse
 Path 5 │ Constrained Delegation Exploitation
 ```
 
-### Challenge Breakdown
-
-| Challenge | Focus Area | Points |
-|:---------:|------------|:------:|
-| 1-2 | Web enumeration & info disclosure | 175 |
-| 3-4 | AS-REP roasting & hash cracking | 175 |
-| 5 | Kerberoasting | 100 |
-| 6 | GPP password exploitation | 125 |
-| 7 | DCSync permissions | 125 |
-| 8 | Privilege escalation analysis | 100 |
-| 9 | Kerberos delegation | 100 |
-| 10 | Domain compromise | 100 |
-| | **Total** | **1000** |
-
 Full write-up: [`unbaked/README.md`](https://github.com/Aditya-k-Jangid/Labs_To_3xploit/tree/main/Unbacked/README.md)
+
+---
+
+```
+┌──────────────────────────────────────────────┐
+│  02 // CONTROL                                │
+│  AD ESC1 Attack Lab                           │
+└──────────────────────────────────────────────┘
+```
+
+A single-DC chain lab focused on AD Certificate Services abuse, built on top of a deliberately weakened domain.
+
+<table>
+<tr><td><b>Focus</b></td><td>Anonymous SMB enumeration, credential cracking, ACL abuse, AD CS ESC1 exploitation, path to Domain Admin</td></tr>
+<tr><td><b>Deploy</b></td><td><code>LabSetup.ps1</code> on a fresh DC (AD DS + AD CS Enterprise Root CA required first)</td></tr>
+<tr><td><b>Verify</b></td><td><code>Checker.ps1</code> — confirms the environment built correctly before attacking</td></tr>
+<tr><td><b>Practice</b></td><td><code>Guide.html</code> — flag submission + hints</td></tr>
+</table>
+
+### Attack Path
+
+```
+Anonymous SMB -> Cracked creds -> ACL abuse -> AD CS ESC1 -> Domain Admin
+```
+
+Full write-up: [`Control/README.md`](https://github.com/Aditya-k-Jangid/Labs_To_3xploit/tree/main/Control/README.md)
 
 ---
 
